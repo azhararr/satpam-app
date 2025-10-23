@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1a73e8">
+    <title>Satpam Reporter</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📸 Satpam Reporter</h1>
+            <p class="subtitle">Cendekia Leadership School</p>
+        </header>
+
+        <main>
+            <!-- Satpam Name Input -->
+            <div class="input-section">
+                <label for="satpamName">Nama Satpam:</label>
+                <select id="satpamName">
+                    <option value="">Pilih nama...</option>
+                    <option value="Budi Santoso">Budi Santoso</option>
+                    <option value="Ahmad Yani">Ahmad Yani</option>
+                    <option value="Eko Prasetyo">Eko Prasetyo</option>
+                    <option value="Rudi Hermawan">Rudi Hermawan</option>
+                </select>
+            </div>
+
+            <!-- Camera Section -->
+            <div class="camera-section" id="cameraSection" style="display: none;">
+                <video id="video" autoplay playsinline></video>
+                <canvas id="canvas" style="display: none;"></canvas>
+            </div>
+
+            <!-- Preview Section -->
+            <div class="preview-section" id="previewSection" style="display: none;">
+                <img id="preview" alt="Preview foto">
+            </div>
+
+            <!-- Status Messages -->
+            <div id="statusMessage" class="status-message"></div>
+
+            <!-- Action Buttons -->
+            <div class="button-group">
+                <button id="startBtn" class="btn btn-primary">
+                    📷 Ambil Foto
+                </button>
+                <button id="captureBtn" class="btn btn-success" style="display: none;">
+                    ✓ Capture
+                </button>
+                <button id="retakeBtn" class="btn btn-secondary" style="display: none;">
+                    ↺ Ulang
+                </button>
+                <button id="shareBtn" class="btn btn-share" style="display: none;">
+                    📤 Kirim ke WhatsApp
+                </button>
+            </div>
+        </main>
+
+        <footer>
+            <p>© 2025 Cendekia Leadership School</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
