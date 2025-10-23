@@ -2,7 +2,7 @@
 const APP_VERSION = '1.0.0';
 const GPS_TIMEOUT = 30000; // 30 seconds
 const GPS_MAX_RETRIES = 2;
-const GPS_MAX_ACCURACY = 100; // meters
+const GPS_MAX_ACCURACY = 50; // meters
 
 // School Geofencing Configuration
 // Cendekia Leadership School - Jl. Ligar Taqwa, Jawa Barat
