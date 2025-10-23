@@ -139,51 +139,139 @@ async function getLocationName(lat, lon) {
 
 // Draw Watermark on Canvas
 function drawWatermark(ctx, width, height, data) {
-    const padding = 25;
-    const lineHeight = 32;
-    const fontSize = 22; // Increased from 16 to 22
+    // Detect orientation
+    const isLandscape = width > height;
     
-    // Semi-transparent background - taller untuk font lebih besar
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-    ctx.fillRect(0, height - 230, width, 230);
+    // Responsive sizing based on orientation
+    const scale = isLandscape ? Math.min(height / 1080, 1) : Math.min(width / 1080, 1);
+    const padding = Math.round(40 * scale);
     
-    // Set text style
+    // Split datetime into time and date
+    const [dateStr, timeStr] = data.datetime.split(' - ');
+    
+    // === BOX UNTUK INFO DETAIL (kiri bawah) ===
+    // Di landscape: box lebih kecil proporsinya
+    const boxWidthRatio = isLandscape ? 0.5 : 0.75;
+    const boxHeightRatio = isLandscape ? 0.35 : 0.26;
+    
+    const boxWidth = Math.round(Math.min(width * boxWidthRatio, 650 * scale));
+    const boxHeight = Math.round(Math.min(height * boxHeightRatio, 280 * scale));
+    const boxX = 0; // Mepet ke kiri
+    const boxY = height - boxHeight; // Mepet ke bawah
+    
+    // Draw rounded box dengan shadow (LEBIH TRANSPARENT)
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+    ctx.shadowBlur = Math.round(20 * scale);
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = Math.round(8 * scale);
+    
+    const cornerRadius = Math.round(15 * scale);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.60)'; // Lebih transparent (dari 0.85 ke 0.60)
+    ctx.beginPath();
+    // Rounded corner hanya kanan atas [top-left, top-right, bottom-right, bottom-left]
+    ctx.roundRect(boxX, boxY, boxWidth, boxHeight, [0, cornerRadius, 0, 0]);
+    ctx.fill();
+    
+    // Reset shadow
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    
+    // Red border at top of box
+    const borderHeight = Math.round(6 * scale);
+    ctx.fillStyle = '#e74c3c';
+    ctx.beginPath();
+    ctx.roundRect(boxX, boxY, boxWidth, borderHeight, [0, cornerRadius, 0, 0]);
+    ctx.fill();
+    
+    // Content inside box - responsive font sizes
+    const innerPadding = Math.round(45 * scale);
+    const topSpacing = Math.round(70 * scale);
+    let yPos = boxY + topSpacing;
+    
+    // Responsive font sizes
+    const timeFontSize = Math.round(60 * scale);
+    const dateFontSize = Math.round(28 * scale);
+    const pinFontSize = Math.round(36 * scale);
+    const locationFontSize = Math.round(30 * scale);
+    const gpsFontSize = Math.round(22 * scale);
+    const pinOffset = Math.round(50 * scale);
+    
+    // TIME (VERY LARGE)
     ctx.fillStyle = 'white';
-    ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+    ctx.font = `bold ${timeFontSize}px Arial, sans-serif`;
     ctx.textAlign = 'left';
+    ctx.fillText(timeStr, boxX + innerPadding, yPos);
+    yPos += Math.round(58 * scale);
     
-    let yPosition = height - 190;
+    // DATE
+    ctx.font = `${dateFontSize}px Arial, sans-serif`;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+    ctx.fillText(dateStr, boxX + innerPadding, yPos);
+    yPos += Math.round(65 * scale);
     
-    // School name
-    ctx.font = `bold ${fontSize + 4}px Arial, sans-serif`;
-    ctx.fillText('CENDEKIA LEADERSHIP SCHOOL', padding, yPosition);
-    yPosition += lineHeight + 5;
+    // LOCATION with red pin
+    ctx.fillStyle = '#e74c3c';
+    ctx.font = `bold ${pinFontSize}px Arial, sans-serif`;
+    ctx.fillText('📍', boxX + innerPadding, yPos);
     
-    // Date & Time
-    ctx.font = `${fontSize}px Arial, sans-serif`;
-    ctx.fillText(`📅 ${data.datetime}`, padding, yPosition);
-    yPosition += lineHeight;
-    
-    // Location
-    ctx.fillText(`📍 ${data.location}`, padding, yPosition);
-    yPosition += lineHeight;
+    ctx.fillStyle = 'white';
+    ctx.font = `bold ${locationFontSize}px Arial, sans-serif`;
+    ctx.fillText(data.location, boxX + innerPadding + pinOffset, yPos);
+    yPos += Math.round(50 * scale);
     
     // GPS Coordinates
-    ctx.font = `${fontSize - 2}px Arial, sans-serif`;
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-    ctx.fillText(`GPS: ${data.gps}`, padding, yPosition);
-    yPosition += lineHeight;
+    ctx.font = `${gpsFontSize}px Arial, sans-serif`;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.fillText(`GPS: ${data.gps}`, boxX + innerPadding + pinOffset, yPos);
     
-    // Satpam name
+    // === NAMA SEKOLAH (pojok kanan atas) - TANPA BOX ===
+    const schoolFontSize = Math.round(24 * scale);
+    const satpamFontSize = Math.round(26 * scale);
+    const reportFontSize = Math.round(24 * scale);
+    
+    ctx.textAlign = 'right';
+    ctx.font = `bold ${schoolFontSize}px Arial, sans-serif`;
+    
+    // Text shadow untuk readability
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+    ctx.shadowBlur = Math.round(10 * scale);
+    ctx.shadowOffsetX = Math.round(2 * scale);
+    ctx.shadowOffsetY = Math.round(2 * scale);
+    
     ctx.fillStyle = 'white';
-    ctx.font = `${fontSize}px Arial, sans-serif`;
-    ctx.fillText(`👤 ${data.satpam}`, padding, yPosition);
-    yPosition += lineHeight - 2;
+    ctx.fillText('CENDEKIA LEADERSHIP SCHOOL', width - padding, padding + Math.round(30 * scale));
     
-    // Report ID
-    ctx.font = `bold ${fontSize + 2}px Arial, sans-serif`;
+    // Reset shadow
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    
+    // === SATPAM & ID LAPORAN (pojok kanan bawah) - TANPA BOX ===
+    ctx.textAlign = 'right';
+    
+    // Satpam name with shadow
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+    ctx.shadowBlur = Math.round(10 * scale);
+    ctx.shadowOffsetX = Math.round(2 * scale);
+    ctx.shadowOffsetY = Math.round(2 * scale);
+    
+    ctx.font = `bold ${satpamFontSize}px Arial, sans-serif`;
+    ctx.fillStyle = 'white';
+    ctx.fillText(`👤 ${data.satpam}`, width - padding, height - padding - Math.round(40 * scale));
+    
+    // Report ID below (green)
+    ctx.font = `bold ${reportFontSize}px Arial, sans-serif`;
     ctx.fillStyle = '#4CAF50';
-    ctx.fillText(`ID: #${data.reportId}`, padding, yPosition);
+    ctx.fillText(`#${data.reportId}`, width - padding, height - padding - Math.round(10 * scale));
+    
+    // Reset shadow
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
 }
 
 // Start Camera

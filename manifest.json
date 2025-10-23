@@ -2,7 +2,7 @@
   "name": "Satpam Reporter - Cendekia Leadership School",
   "short_name": "SatpamApp",
   "description": "Aplikasi pelaporan untuk satpam dengan foto, GPS, dan watermark otomatis",
-  "start_url": "/satpam-app/",
+  "start_url": "index.html?source=pwa",
   "scope": "/satpam-app/",
   "display": "standalone",
   "background_color": "#ffffff",

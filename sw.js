@@ -1,13 +1,12 @@
-const CACHE_NAME = 'satpam-reporter-v3';
-const BASE_PATH = '/satpam-app/';
+const CACHE_NAME = 'satpam-reporter-v5';
 const urlsToCache = [
-  BASE_PATH,
-  `${BASE_PATH}index.html`,
-  `${BASE_PATH}style.css`,
-  `${BASE_PATH}app.js`,
-  `${BASE_PATH}manifest.json`,
-  `${BASE_PATH}icons/icon-192.png`,
-  `${BASE_PATH}icons/icon-512.png`
+  '/satpam-app/',
+  '/satpam-app/index.html',
+  '/satpam-app/style.css',
+  '/satpam-app/app.js',
+  '/satpam-app/manifest.json',
+  '/satpam-app/icons/icon-192.png',
+  '/satpam-app/icons/icon-512.png'
 ];
 
 // Install Service Worker
@@ -74,7 +73,7 @@ self.addEventListener('fetch', (event) => {
               return response;
             }
             // Return offline page if available
-            return caches.match(`${BASE_PATH}index.html`);
+            return caches.match('/satpam-app/index.html');
           });
       })
   );
