@@ -139,23 +139,23 @@ async function getLocationName(lat, lon) {
 
 // Draw Watermark on Canvas
 function drawWatermark(ctx, width, height, data) {
-    const padding = 20;
-    const lineHeight = 24;
-    const fontSize = 16;
+    const padding = 25;
+    const lineHeight = 32;
+    const fontSize = 22; // Increased from 16 to 22
     
-    // Semi-transparent background
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(0, height - 180, width, 180);
+    // Semi-transparent background - taller untuk font lebih besar
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    ctx.fillRect(0, height - 230, width, 230);
     
     // Set text style
     ctx.fillStyle = 'white';
     ctx.font = `bold ${fontSize}px Arial, sans-serif`;
     ctx.textAlign = 'left';
     
-    let yPosition = height - 150;
+    let yPosition = height - 190;
     
     // School name
-    ctx.font = `bold ${fontSize + 2}px Arial, sans-serif`;
+    ctx.font = `bold ${fontSize + 4}px Arial, sans-serif`;
     ctx.fillText('CENDEKIA LEADERSHIP SCHOOL', padding, yPosition);
     yPosition += lineHeight + 5;
     
@@ -168,9 +168,9 @@ function drawWatermark(ctx, width, height, data) {
     ctx.fillText(`📍 ${data.location}`, padding, yPosition);
     yPosition += lineHeight;
     
-    // GPS Coordinates (smaller)
+    // GPS Coordinates
     ctx.font = `${fontSize - 2}px Arial, sans-serif`;
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
     ctx.fillText(`GPS: ${data.gps}`, padding, yPosition);
     yPosition += lineHeight;
     
@@ -178,10 +178,10 @@ function drawWatermark(ctx, width, height, data) {
     ctx.fillStyle = 'white';
     ctx.font = `${fontSize}px Arial, sans-serif`;
     ctx.fillText(`👤 ${data.satpam}`, padding, yPosition);
-    yPosition += lineHeight;
+    yPosition += lineHeight - 2;
     
     // Report ID
-    ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+    ctx.font = `bold ${fontSize + 2}px Arial, sans-serif`;
     ctx.fillStyle = '#4CAF50';
     ctx.fillText(`ID: #${data.reportId}`, padding, yPosition);
 }
@@ -232,55 +232,108 @@ async function capturePhoto() {
             return;
         }
 
-        showStatus('📸 Mengambil foto...', 'loading');
-        
-        // Get GPS location
-        gpsData = await getGPSLocation();
-        
-        // Get location name
-        const locationName = await getLocationName(gpsData.lat, gpsData.lon);
+        // LANGKAH 1: Ambil foto dan freeze IMMEDIATELY (UX improvement)
+        showStatus('📸 Foto diambil! Memproses...', 'loading');
         
         // Setup canvas
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         const ctx = canvas.getContext('2d');
         
-        // Draw video frame
+        // Draw video frame IMMEDIATELY
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         
-        // Prepare watermark data
-        const now = new Date();
-        const watermarkData = {
-            datetime: formatDate(now),
-            location: locationName,
-            gps: `${gpsData.lat.toFixed(6)}, ${gpsData.lon.toFixed(6)}`,
-            satpam: satpamName,
-            reportId: generateReportId()
-        };
-        
-        // Draw watermark
-        drawWatermark(ctx, canvas.width, canvas.height, watermarkData);
-        
-        // Convert to image
-        currentPhoto = canvas.toDataURL('image/jpeg', 0.9);
-        preview.src = currentPhoto;
-        
-        // Stop camera
+        // Stop camera immediately for better UX
         stopCamera();
         
-        // Update UI
+        // Show frozen photo immediately (without watermark yet)
+        const frozenPhoto = canvas.toDataURL('image/jpeg', 0.9);
+        preview.src = frozenPhoto;
+        
+        // Update UI - show preview immediately
         cameraSection.style.display = 'none';
         previewSection.style.display = 'block';
         captureBtn.style.display = 'none';
         retakeBtn.style.display = 'block';
-        shareBtn.style.display = 'block';
+        shareBtn.style.display = 'none'; // Hide until watermark ready
         
-        showStatus('✓ Foto berhasil diambil!', 'success');
-        setTimeout(hideStatus, 3000);
+        // LANGKAH 2: Fetch GPS di background
+        showStatus('📍 Menambahkan informasi lokasi...', 'loading');
+        
+        try {
+            // Get GPS location
+            gpsData = await getGPSLocation();
+            
+            // Get location name
+            const locationName = await getLocationName(gpsData.lat, gpsData.lon);
+            
+            // LANGKAH 3: Draw watermark on the frozen photo
+            // Re-draw the frozen photo
+            const img = new Image();
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                // Prepare watermark data
+                const now = new Date();
+                const watermarkData = {
+                    datetime: formatDate(now),
+                    location: locationName,
+                    gps: `${gpsData.lat.toFixed(6)}, ${gpsData.lon.toFixed(6)}`,
+                    satpam: satpamName,
+                    reportId: generateReportId()
+                };
+                
+                // Draw watermark
+                drawWatermark(ctx, canvas.width, canvas.height, watermarkData);
+                
+                // Update with watermarked photo
+                currentPhoto = canvas.toDataURL('image/jpeg', 0.9);
+                preview.src = currentPhoto;
+                
+                // Show share button
+                shareBtn.style.display = 'block';
+                
+                showStatus('✓ Foto berhasil diambil dengan informasi lengkap!', 'success');
+                setTimeout(hideStatus, 3000);
+            };
+            img.src = frozenPhoto;
+            
+        } catch (gpsError) {
+            // If GPS fails, still allow sharing with basic info
+            console.error('GPS error:', gpsError);
+            
+            // Draw watermark with basic info (no GPS)
+            const now = new Date();
+            const watermarkData = {
+                datetime: formatDate(now),
+                location: 'Cendekia Leadership School',
+                gps: 'Lokasi tidak tersedia',
+                satpam: satpamName,
+                reportId: generateReportId()
+            };
+            
+            // Re-draw frozen photo with watermark
+            const img = new Image();
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                drawWatermark(ctx, canvas.width, canvas.height, watermarkData);
+                
+                currentPhoto = canvas.toDataURL('image/jpeg', 0.9);
+                preview.src = currentPhoto;
+                
+                shareBtn.style.display = 'block';
+                
+                showStatus('⚠️ Foto diambil tanpa GPS (izinkan akses lokasi untuk GPS)', 'error');
+                setTimeout(hideStatus, 4000);
+            };
+            img.src = frozenPhoto;
+        }
         
     } catch (error) {
         console.error('Capture error:', error);
         showStatus(`❌ ${error.message}`, 'error');
+        // Restart camera if capture fails
+        startCamera();
     }
 }
 

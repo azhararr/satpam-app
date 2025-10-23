@@ -1,12 +1,12 @@
 const CACHE_NAME = 'satpam-reporter-v1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/app.js',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  './',
+  './index.html',
+  './style.css',
+  './app.js',
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
 // Install Service Worker
@@ -73,7 +73,7 @@ self.addEventListener('fetch', (event) => {
               return response;
             }
             // Return offline page if available
-            return caches.match('/index.html');
+            return caches.match('./index.html');
           });
       })
   );
