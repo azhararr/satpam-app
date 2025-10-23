@@ -7,10 +7,10 @@ const GPS_MAX_ACCURACY = 100; // meters
 // School Geofencing Configuration
 // Cendekia Leadership School - Jl. Ligar Taqwa, Jawa Barat
 // Source: Google Maps / Wikimapia (6°52'26" S, 107°38'17" E)
-const SCHOOL_LAT = -6.873889;
-const SCHOOL_LON = 107.638056;
+const SCHOOL_LAT = -6.8739913;
+const SCHOOL_LON = 107.6382024;
 const SCHOOL_RADIUS = 50; // meters (tight radius - prevent cheating!)
-const SCHOOL_NAME = 'Cendekia Leadership School, Bandung';
+const SCHOOL_NAME = 'Cendekia Leadership School';
 
 // Global variables
 let stream = null;
