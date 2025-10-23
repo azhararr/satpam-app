@@ -4,6 +4,14 @@ const GPS_TIMEOUT = 30000; // 30 seconds
 const GPS_MAX_RETRIES = 2;
 const GPS_MAX_ACCURACY = 100; // meters
 
+// School Geofencing Configuration
+// Cendekia Leadership School - Jl. Ligar Taqwa, Jawa Barat
+// Source: Google Maps / Wikimapia (6°52'26" S, 107°38'17" E)
+const SCHOOL_LAT = -6.873889;
+const SCHOOL_LON = 107.638056;
+const SCHOOL_RADIUS = 50; // meters (tight radius - prevent cheating!)
+const SCHOOL_NAME = 'Cendekia Leadership School, Bandung';
+
 // Global variables
 let stream = null;
 let currentPhoto = null;
@@ -76,6 +84,9 @@ async function getGPSLocation(retryCount = 0) {
                         }, 1000);
                         return;
                     }
+                    // After all retries, still reject if too poor
+                    reject(new Error(`Akurasi GPS terlalu buruk: ±${Math.round(position.coords.accuracy)}m (maks: ±${GPS_MAX_ACCURACY}m). Gunakan device dengan GPS yang lebih baik.`));
+                    return;
                 }
                 
                 resolve({
@@ -142,24 +153,26 @@ async function getLocationName(lat, lon) {
     let locationName = '';
     
     if (data.address) {
-        // Priority: road > suburb > neighbourhood > village > town > city
-        // We want street-level precision
+        // Priority: building > amenity > road > suburb > neighbourhood > village > town
+        // We want building-level precision, avoid county (too generic)
         const parts = [];
         
-        // Primary location (street/POI level)
-        const primary = data.address.road || 
-                       data.address.suburb || 
-                       data.address.neighbourhood ||
-                       data.address.amenity ||
-                       data.address.building;
+        // Primary location (POI/building/street level) - MOST SPECIFIC
+        const primary = data.address.amenity ||         // POI: NAMA SEKOLAH, kantor, dll (PRIORITAS!)
+                       data.address.building ||         // Gedung/bangunan spesifik
+                       data.address.house_name ||       // Nama rumah/bangunan
+                       data.address.shop ||             // Nama toko
+                       data.address.road ||             // Jalan
+                       data.address.neighbourhood ||    // Lingkungan
+                       data.address.suburb;             // Suburb/kelurahan
         
         if (primary) parts.push(primary);
         
-        // Secondary location (city/region level)
+        // Secondary location (city/village level) - AVOID COUNTY!
         const secondary = data.address.village ||
                          data.address.town ||
                          data.address.city ||
-                         data.address.county;
+                         data.address.municipality;
         
         if (secondary) parts.push(secondary);
         
@@ -176,6 +189,29 @@ async function getLocationName(lat, lon) {
     // Still empty? REJECT - no fake data
     if (!locationName || locationName.trim() === '') {
         throw new Error('Tidak dapat menentukan nama lokasi yang valid. Pastikan GPS lock baik dan ada koneksi internet.');
+    }
+    
+    // Reject if location is too generic (only county/province level)
+    const firstPart = locationName.split(',')[0].trim();
+    const genericTerms = ['Kabupaten', 'Kota', 'Provinsi'];
+    const isOnlyCounty = genericTerms.some(term => firstPart.startsWith(term));
+    
+    if (isOnlyCounty) {
+        // Geofencing validation: Check if within school area
+        // Calculate distance using Haversine approximation (accurate for short distances)
+        const distance = Math.sqrt(
+            Math.pow((lat - SCHOOL_LAT) * 111000, 2) + 
+            Math.pow((lon - SCHOOL_LON) * 111000 * Math.cos(lat * Math.PI / 180), 2)
+        );
+        
+        if (distance < SCHOOL_RADIUS) {
+            // Within school area - override generic location with school name
+            console.log(`Geofencing match: ${distance.toFixed(1)}m from school center`);
+            return SCHOOL_NAME;
+        }
+        
+        // Outside school area - reject generic location
+        throw new Error(`Lokasi terlalu umum: "${locationName}". GPS kurang akurat. Gunakan HP dengan GPS yang lebih baik atau di area outdoor.`);
     }
 
     return locationName.trim();
@@ -208,9 +244,9 @@ function drawWatermark(ctx, width, height, data) {
     // Split datetime into time and date
     const [dateStr, timeStr] = data.datetime.split(' - ');
     
-    // === BOX UNTUK INFO DETAIL (kiri bawah) ===
-    const boxWidth = Math.min(620, width * 0.75);
-    const boxHeight = 280; // Lebih tinggi
+    // === BOX UNTUK INFO DETAIL (kiri bawah) - LEBIH LEBAR ===
+    const boxWidth = Math.min(width * 0.88, 800); // 88% width, max 800px (lebih luas!)
+    const boxHeight = 320; // Lebih tinggi untuk accommodate long text
     const boxX = 0; // Mepet ke kiri
     const boxY = height - boxHeight; // Mepet ke bawah
     
@@ -238,44 +274,77 @@ function drawWatermark(ctx, width, height, data) {
     ctx.roundRect(boxX, boxY, boxWidth, 6, [0, 15, 0, 0]);
     ctx.fill();
     
-    // Content inside box (with MUCH more padding)
-    const innerPadding = 45; // Padding dalam box lebih besar
-    let yPos = boxY + 70; // Start lebih jauh dari atas
+    // Content inside box (with breathing room)
+    const innerPadding = 40; // Padding dalam box
+    const maxTextWidth = boxWidth - innerPadding - 60; // Max width for text wrapping
+    let yPos = boxY + 65; // Start position
     
-    // TIME (VERY LARGE)
+    // TIME (LARGE)
     ctx.fillStyle = 'white';
-    ctx.font = 'bold 60px Arial, sans-serif';
+    ctx.font = 'bold 56px Arial, sans-serif';
     ctx.textAlign = 'left';
     ctx.fillText(timeStr, boxX + innerPadding, yPos);
-    yPos += 58; // Spacing lebih besar
+    yPos += 54; // Spacing
     
     // DATE
-    ctx.font = '28px Arial, sans-serif';
+    ctx.font = '26px Arial, sans-serif';
     ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
     ctx.fillText(dateStr, boxX + innerPadding, yPos);
-    yPos += 65; // Spacing lebih besar
+    yPos += 60; // Spacing
     
-    // LOCATION with red pin
+    // LOCATION with red pin - WITH TEXT WRAPPING
+    const locationStartX = boxX + innerPadding;
+    const locationTextX = locationStartX + 50;
+    
+    // Draw pin icon
     ctx.fillStyle = '#e74c3c';
-    ctx.font = 'bold 36px Arial, sans-serif';
-    ctx.fillText('📍', boxX + innerPadding, yPos);
+    ctx.font = 'bold 32px Arial, sans-serif';
+    ctx.fillText('📍', locationStartX, yPos);
     
+    // Draw location text with wrapping
     ctx.fillStyle = 'white';
-    ctx.font = 'bold 30px Arial, sans-serif';
-    ctx.fillText(data.location, boxX + innerPadding + 50, yPos);
-    yPos += 50; // Spacing lebih besar
+    ctx.font = 'bold 26px Arial, sans-serif'; // Slightly smaller for long text
+    
+    // Word wrap function
+    const words = data.location.split(' ');
+    let line = '';
+    const lineHeight = 32;
+    let lineCount = 0;
+    const maxLines = 2; // Max 2 lines for location
+    
+    for (let i = 0; i < words.length; i++) {
+        const testLine = line + words[i] + ' ';
+        const metrics = ctx.measureText(testLine);
+        
+        if (metrics.width > maxTextWidth - 50 && line !== '') {
+            ctx.fillText(line.trim(), locationTextX, yPos + (lineCount * lineHeight));
+            line = words[i] + ' ';
+            lineCount++;
+            if (lineCount >= maxLines) break; // Stop after max lines
+        } else {
+            line = testLine;
+        }
+    }
+    
+    // Draw last line (or only line if short)
+    if (line.trim() !== '' && lineCount < maxLines) {
+        ctx.fillText(line.trim(), locationTextX, yPos + (lineCount * lineHeight));
+        lineCount++;
+    }
+    
+    yPos += (lineCount * lineHeight) + 20; // Dynamic spacing based on lines used
     
     // GPS Coordinates + Accuracy
-    ctx.font = '22px Arial, sans-serif';
+    ctx.font = '20px Arial, sans-serif';
     ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.fillText(`GPS: ${data.gps}`, boxX + innerPadding + 50, yPos);
+    ctx.fillText(`GPS: ${data.gps}`, locationTextX, yPos);
     
     // Accuracy indicator (show if available)
     if (data.accuracy) {
-        yPos += 35;
-        ctx.font = '20px Arial, sans-serif';
+        yPos += 30;
+        ctx.font = '19px Arial, sans-serif';
         ctx.fillStyle = 'rgba(76, 175, 80, 0.9)'; // Green for accuracy
-        ctx.fillText(`Akurasi: ${data.accuracy}`, boxX + innerPadding + 50, yPos);
+        ctx.fillText(`Akurasi: ${data.accuracy}`, locationTextX, yPos);
     }
     
     // === NAMA SEKOLAH (pojok kanan atas) - TANPA BOX ===
