@@ -43,22 +43,32 @@
 ⚡ FITUR UTAMA:
 
    ✓ Camera Only (tidak bisa upload foto lama)
-   ✓ GPS Otomatis + Nama Lokasi (OpenStreetMap)
+   ✓ GPS WAJIB (⚠️ NO FALLBACK - GPS gagal = foto gagal)
+     • Timeout: 30 detik
+     • Auto-retry: 2x
+     • Max akurasi: ±100m
    ✓ Watermark Otomatis:
-     • Nama sekolah
-     • Tanggal & waktu
-     • Lokasi + GPS coordinates
+     • Versi App (v1.0.0) - pojok kiri atas
+     • Nama sekolah - pojok kanan atas
+     • Tanggal & waktu real-time
+     • Nama lokasi (OpenStreetMap)
+     • GPS coordinates lengkap
+     • Akurasi GPS (±Xm)
      • Nama satpam
      • ID laporan unik
    ✓ Share langsung ke WhatsApp
-   ✓ Offline Ready (kecuali geocoding)
+   ✓ Internet REQUIRED (untuk nama lokasi)
    ✓ Install as App di home screen
 
-🔒 KEAMANAN:
+🔒 KEAMANAN & VALIDASI:
 
    ✓ Hanya capture, tidak bisa upload
-   ✓ GPS & timestamp real-time
+   ✓ GPS WAJIB - no fake location (strict validation)
+   ✓ GPS akurasi max ±100m (auto retry jika buruk)
+   ✓ Nama lokasi real dari OpenStreetMap
+   ✓ Timestamp real-time
    ✓ Watermark embedded (tidak bisa dihapus)
+   ✓ Version tracking (mencegah app lama)
    ✓ ID unik setiap foto
    ✓ No server, no database (privacy)
 

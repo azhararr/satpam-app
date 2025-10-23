@@ -5,16 +5,21 @@ Aplikasi Progressive Web App (PWA) untuk satpam Cendekia Leadership School melap
 ## ✨ Fitur
 
 - ✅ **Camera Only** - Hanya bisa capture langsung, tidak bisa upload foto lama
-- ✅ **GPS Otomatis** - Lokasi terdeteksi otomatis dengan akurasi tinggi
+- ✅ **GPS WAJIB** - ⚠️ **TIDAK ADA FALLBACK**: Jika GPS gagal, foto tidak bisa diambil
+  - Timeout: 30 detik untuk GPS lock
+  - Auto-retry: 2x percobaan ulang otomatis
+  - Validasi akurasi: Maksimal ±100m
 - ✅ **Watermark Otomatis** - Setiap foto memiliki:
-  - Nama sekolah: Cendekia Leadership School
-  - Tanggal & waktu capture
-  - Lokasi (dari OpenStreetMap)
-  - Koordinat GPS
+  - **Versi App** (pojok kiri atas) - untuk memastikan app tidak usang
+  - Nama sekolah: Cendekia Leadership School (pojok kanan atas)
+  - Tanggal & waktu capture real-time
+  - Nama lokasi (dari OpenStreetMap)
+  - Koordinat GPS lengkap
+  - **Akurasi GPS** (±Xm)
   - Nama satpam
   - ID laporan unik
 - ✅ **Share ke WhatsApp** - Langsung kirim ke grup/kontak
-- ✅ **Offline Ready** - Bisa digunakan tanpa internet (kecuali untuk nama lokasi)
+- ✅ **Internet Required** - Diperlukan internet untuk nama lokasi dari OpenStreetMap
 - ✅ **Install as App** - Bisa diinstall di home screen seperti app native
 
 ## 🚀 Cara Deploy ke GitHub Pages
@@ -114,45 +119,78 @@ Edit file `style.css`, ubah warna di:
 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 ```
 
-## 🔒 Keamanan
+## 🔒 Keamanan & Validasi
 
-- ✅ Hanya bisa capture dari kamera, tidak bisa upload foto lama
-- ✅ GPS dan timestamp otomatis dari device
-- ✅ Watermark embedded dalam foto (tidak bisa dihapus)
-- ✅ ID laporan unik untuk setiap foto
-- ✅ Foto tersimpan lokal di device, tidak di server
+- ✅ **Camera Only** - Hanya bisa capture dari kamera, tidak bisa upload foto lama
+- ✅ **GPS WAJIB** - Tidak ada fallback lokasi palsu, GPS harus berhasil atau foto gagal
+- ✅ **GPS Validation** - Akurasi maksimal ±100m, jika lebih buruk akan retry
+- ✅ **Real Location Name** - Nama lokasi dari OpenStreetMap (tidak bisa palsu)
+- ✅ **Timestamp Real-time** - Tanggal & waktu dari device
+- ✅ **Watermark Embedded** - Tidak bisa dihapus atau dimodifikasi
+- ✅ **ID Laporan Unik** - Setiap foto memiliki ID unik
+- ✅ **Version Tracking** - Watermark menampilkan versi app (mencegah penggunaan app lama)
+- ✅ **Local Storage** - Foto tersimpan lokal di device, tidak di server
 
 ## 🛠️ Troubleshooting
+
+### ❌ "Gagal mendapatkan lokasi GPS"
+**PENYEBAB**: GPS tidak bisa lock atau timeout (30 detik)
+**SOLUSI**:
+- Pastikan GPS device aktif (Settings → Location → ON)
+- Tunggu di tempat terbuka (tidak di dalam gedung)
+- App akan retry otomatis 2x
+- Jika tetap gagal, foto TIDAK BISA diambil (ini fitur keamanan)
+
+### ❌ "Gagal mengambil nama lokasi dari server"
+**PENYEBAB**: Tidak ada koneksi internet
+**SOLUSI**:
+- Pastikan ada koneksi internet (WiFi atau data seluler)
+- GPS coordinates berhasil, tapi butuh internet untuk nama lokasi
+- Tanpa nama lokasi, foto TIDAK BISA diambil (no fake location)
+
+### ❌ "Akurasi GPS kurang baik (>100m)"
+**PENYEBAB**: Sinyal GPS lemah
+**SOLUSI**:
+- Pindah ke area terbuka
+- Tunggu beberapa detik untuk GPS stabilize
+- App akan retry otomatis sampai akurasi ≤100m
 
 ### Kamera Tidak Bisa Dibuka
 - Pastikan izin kamera sudah diberikan di browser
 - Buka Settings → Permissions → Camera
 - HTTPS wajib untuk akses kamera (GitHub Pages otomatis HTTPS)
-
-### GPS Tidak Akurat
-- Pastikan GPS device aktif
-- Tunggu beberapa detik untuk GPS lock
-- Gunakan di area terbuka untuk sinyal GPS lebih baik
-
-### Lokasi Menampilkan "Lokasi tidak diketahui"
-- Butuh koneksi internet untuk reverse geocoding
-- Jika offline, akan fallback ke "Cendekia Leadership School"
-- Koordinat GPS tetap tercatat
+- Jika kamera digunakan app lain, tutup dulu app tersebut
 
 ### Share ke WhatsApp Tidak Muncul
 - Pastikan WhatsApp sudah terinstall
 - Gunakan browser Chrome/Safari (default browser)
 - Jika gagal, foto akan otomatis terdownload → kirim manual
 
+### ⚠️ PENTING: Persyaratan App
+1. **GPS HARUS AKTIF** - Tidak bisa ambil foto tanpa GPS
+2. **INTERNET REQUIRED** - Diperlukan untuk nama lokasi
+3. **IZIN KAMERA & LOKASI** - Harus diberikan ke browser
+4. **HTTPS** - App harus diakses via HTTPS (otomatis di GitHub Pages)
+
 ## 📊 Spesifikasi Teknis
 
 - **Framework**: Vanilla JavaScript (no dependencies)
-- **PWA**: Service Worker untuk offline
+- **Version**: 1.0.0 (displayed on watermark)
+- **PWA**: Service Worker untuk offline capability
 - **GPS**: Geolocation API (HTML5)
+  - High accuracy mode
+  - Timeout: 30 seconds
+  - Max retries: 2x
+  - Max accuracy: ±100m
 - **Camera**: MediaDevices API (HTML5)
-- **Geocoding**: OpenStreetMap Nominatim (gratis)
+  - Back camera preferred
+  - Resolution: 1920x1080 ideal
+- **Geocoding**: OpenStreetMap Nominatim (gratis, HTTPS)
+  - User-Agent: SatpamReporter-CendekiaLeadershipSchool/1.0
+  - Language: Indonesian (id)
+  - Zoom level: 18 (street level)
 - **Share**: Web Share API (native)
-- **Storage**: Local only (no backend)
+- **Storage**: Local only (no backend, no database)
 
 ## 📝 Lisensi
 
