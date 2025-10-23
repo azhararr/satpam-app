@@ -452,7 +452,7 @@ async function capturePhoto() {
     try {
         const satpamName = satpamNameSelect.value;
         if (!satpamName) {
-            showStatus('❌ Pilih nama satpam terlebih dahulu', 'error');
+            showStatus('❌ Pilih nama terlebih dahulu', 'error');
             return;
         }
 
@@ -608,7 +608,7 @@ async function shareToWhatsApp() {
 startBtn.addEventListener('click', () => {
     const satpamName = satpamNameSelect.value;
     if (!satpamName) {
-        showStatus('❌ Pilih nama satpam terlebih dahulu', 'error');
+        showStatus('❌ Pilih nama terlebih dahulu', 'error');
         setTimeout(hideStatus, 3000);
         return;
     }
@@ -629,7 +629,7 @@ window.addEventListener('DOMContentLoaded', () => {
             startCamera();
         } else {
             // Show tip to select satpam first
-            showStatus('👤 Pilih nama satpam untuk memulai', 'loading');
+            showStatus('👤 Pilih nama untuk memulai', 'loading');
             
             // Auto-start when satpam selected
             satpamNameSelect.addEventListener('change', function autoStart() {
