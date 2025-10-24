@@ -1,8 +1,8 @@
 // App Configuration
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 const GPS_TIMEOUT = 30000; // 30 seconds
 const GPS_MAX_RETRIES = 2;
-const GPS_MAX_ACCURACY = 50; // meters
+const GPS_MAX_ACCURACY = 50; // meters (strict accuracy - prevent low-quality GPS)
 
 // School Geofencing Configuration
 // Cendekia Leadership School - Jl. Ligar Taqwa, Jawa Barat
@@ -191,27 +191,29 @@ async function getLocationName(lat, lon) {
         throw new Error('Tidak dapat menentukan nama lokasi yang valid. Pastikan GPS lock baik dan ada koneksi internet.');
     }
     
-    // Reject if location is too generic (only county/province level)
+    // ===== GEOFENCING VALIDATION - ALWAYS CHECK =====
+    // Calculate distance from school center using Haversine approximation
+    const distance = Math.sqrt(
+        Math.pow((lat - SCHOOL_LAT) * 111000, 2) + 
+        Math.pow((lon - SCHOOL_LON) * 111000 * Math.cos(lat * Math.PI / 180), 2)
+    );
+    
+    console.log(`Geofencing check: ${distance.toFixed(1)}m from school center (max allowed: ${SCHOOL_RADIUS}m)`);
+    
+    // REJECT if outside school radius
+    if (distance >= SCHOOL_RADIUS) {
+        throw new Error(`❌ LOKASI DITOLAK!\n\nAnda berada ${Math.round(distance)}m dari ${SCHOOL_NAME}.\nFoto hanya bisa diambil dalam radius ${SCHOOL_RADIUS}m dari sekolah.\n\nSilakan datang ke sekolah terlebih dahulu.`);
+    }
+    
+    // WITHIN school radius - check if location name is generic
     const firstPart = locationName.split(',')[0].trim();
     const genericTerms = ['Kabupaten', 'Kota', 'Provinsi'];
     const isOnlyCounty = genericTerms.some(term => firstPart.startsWith(term));
     
     if (isOnlyCounty) {
-        // Geofencing validation: Check if within school area
-        // Calculate distance using Haversine approximation (accurate for short distances)
-        const distance = Math.sqrt(
-            Math.pow((lat - SCHOOL_LAT) * 111000, 2) + 
-            Math.pow((lon - SCHOOL_LON) * 111000 * Math.cos(lat * Math.PI / 180), 2)
-        );
-        
-        if (distance < SCHOOL_RADIUS) {
-            // Within school area - override generic location with school name
-            console.log(`Geofencing match: ${distance.toFixed(1)}m from school center`);
-            return SCHOOL_NAME;
-        }
-        
-        // Outside school area - reject generic location
-        throw new Error(`Lokasi terlalu umum: "${locationName}". GPS kurang akurat. Gunakan HP dengan GPS yang lebih baik atau di area outdoor.`);
+        // Override generic location with school name
+        console.log(`Location too generic, using school name instead`);
+        return SCHOOL_NAME;
     }
 
     return locationName.trim();
@@ -452,7 +454,7 @@ async function capturePhoto() {
     try {
         const satpamName = satpamNameSelect.value;
         if (!satpamName) {
-            showStatus('❌ Pilih nama terlebih dahulu', 'error');
+            showStatus('❌ Pilih nama satpam terlebih dahulu', 'error');
             return;
         }
 
@@ -608,7 +610,7 @@ async function shareToWhatsApp() {
 startBtn.addEventListener('click', () => {
     const satpamName = satpamNameSelect.value;
     if (!satpamName) {
-        showStatus('❌ Pilih nama terlebih dahulu', 'error');
+        showStatus('❌ Pilih nama satpam terlebih dahulu', 'error');
         setTimeout(hideStatus, 3000);
         return;
     }
@@ -629,7 +631,7 @@ window.addEventListener('DOMContentLoaded', () => {
             startCamera();
         } else {
             // Show tip to select satpam first
-            showStatus('👤 Pilih nama untuk memulai', 'loading');
+            showStatus('👤 Pilih nama satpam untuk memulai', 'loading');
             
             // Auto-start when satpam selected
             satpamNameSelect.addEventListener('change', function autoStart() {
